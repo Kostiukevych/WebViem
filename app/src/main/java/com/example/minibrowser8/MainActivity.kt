@@ -3,6 +3,7 @@ package com.example.minibrowser8
 import android.os.Bundle
 import android.webkit.CookieManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
@@ -129,6 +130,14 @@ fun MainBrowserApp(
 
     val activeSlots = slots.take(slotCount)
     val fullscreenSlot = fullscreenSlotId?.let { id -> slots.find { it.id == id } }
+
+    BackHandler(enabled = geminiState.isVisible && fullscreenSlotId == null) {
+        if (!geminiState.isMinimized) {
+            geminiState.minimize()
+        } else {
+            geminiState.close()
+        }
+    }
 
     Scaffold(
         modifier = Modifier
@@ -394,6 +403,8 @@ fun MainBrowserApp(
                     onThemeChange = { currentTheme = it },
                     currentSlotCount = slotCount,
                     onSlotCountChange = { slotCount = it },
+                    currentColumnCount = columnCount,
+                    onColumnCountChange = { columnCount = it },
                     onApplyPreset = { presetUrls ->
                         presetUrls.forEachIndexed { index, url ->
                             if (index < slots.size) {

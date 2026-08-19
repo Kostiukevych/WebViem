@@ -51,6 +51,8 @@ fun SettingsPresetsDialog(
     onThemeChange: (AppThemeStyle) -> Unit,
     currentSlotCount: Int,
     onSlotCountChange: (Int) -> Unit,
+    currentColumnCount: Int = 2,
+    onColumnCountChange: (Int) -> Unit = {},
     onApplyPreset: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -316,7 +318,53 @@ fun SettingsPresetsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // SECTION 4: PRESET BUNDLES
+                // SECTION 4: GRID LAYOUT (1 Column vs 2 Columns)
+                Text(
+                    text = "📐 " + StringsHelper.get("grid_layout", language),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = currentTheme.textPrimary
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        2 to StringsHelper.get("columns_2", language),
+                        1 to StringsHelper.get("columns_1", language)
+                    ).forEach { (cols, label) ->
+                        val isSelected = currentColumnCount == cols
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(
+                                    1.dp,
+                                    if (isSelected) currentTheme.accent else currentTheme.border,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable { onColumnCountChange(cols) },
+                            color = if (isSelected) currentTheme.primary else currentTheme.surfaceVariant
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) Color.White else currentTheme.textPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // SECTION 5: PRESET BUNDLES
                 Text(
                     text = "📦 " + StringsHelper.get("presets", language),
                     fontSize = 13.sp,

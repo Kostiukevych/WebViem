@@ -91,7 +91,6 @@ class BrowserSlotState(
                 setAcceptCookie(true)
             }
 
-            setLayerType(View.LAYER_TYPE_HARDWARE, null)
             isVerticalScrollBarEnabled = true
             isHorizontalScrollBarEnabled = false
 
@@ -314,16 +313,22 @@ class BrowserSlotState(
             customViewCallback = null
             return true
         }
-        if (webViewInstance?.canGoBack() == true) {
-            webViewInstance?.goBack()
+        val wv = webViewInstance
+        if (wv?.canGoBack() == true) {
+            wv.goBack()
+            canGoBack = wv.canGoBack()
+            canGoForward = wv.canGoForward()
             return true
         }
         return false
     }
 
     fun goForward(): Boolean {
-        if (webViewInstance?.canGoForward() == true) {
-            webViewInstance?.goForward()
+        val wv = webViewInstance
+        if (wv?.canGoForward() == true) {
+            wv.goForward()
+            canGoBack = wv.canGoBack()
+            canGoForward = wv.canGoForward()
             return true
         }
         return false

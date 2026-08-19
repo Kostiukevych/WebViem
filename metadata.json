@@ -1,0 +1,6 @@
+{
+  "name": "8 Mini Browsers",
+  "description": "Multitasking multi-window web browser for Android with up to 8 simultaneous web slots, presets, bookmarks, and customizable themes",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
