@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.net.http.SslError
 import android.os.Build
 import android.os.Message
 import android.view.MotionEvent
@@ -13,6 +14,8 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -22,6 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 
 class BrowserSlotState(
     val id: Int,
@@ -73,13 +78,20 @@ class BrowserSlotState(
             s.layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
             s.textZoom = 100
             
+            // Remove X-Requested-With header to prevent Facebook/Instagram/Google from detecting embedded WebView and blocking login
+            try {
+                if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+                    WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, emptySet())
+                }
+            } catch (_: Exception) {}
+
             // Media, Audio & WebRTC Playback settings
             s.mediaPlaybackRequiresUserGesture = false
             s.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             s.allowFileAccess = true
             s.allowContentAccess = true
             s.javaScriptCanOpenWindowsAutomatically = true
-            s.setSupportMultipleWindows(true)
+            s.setSupportMultipleWindows(false)
             
             s.cacheMode = WebSettings.LOAD_DEFAULT
             s.setGeolocationEnabled(true)
@@ -146,19 +158,49 @@ class BrowserSlotState(
                 val urlString = uri.toString()
 
                 // Standard web protocols continue inside this WebView slot
-                if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
+                if (urlString.startsWith("http://") || urlString.startsWith("https://") || urlString.startsWith("about:") || urlString.startsWith("data:") || urlString.startsWith("blob:")) {
                     return false
                 }
 
-                // Handle intent://, instagram://, discord://, mailto:, tel: without crash/error screen
+                // Handle intent:// URLs with browser fallback
+                if (urlString.startsWith("intent:")) {
+                    try {
+                        val intent = Intent.parseUri(urlString, Intent.URI_INTENT_SCHEME)
+                        val fallbackUrl = intent.getStringExtra("browser_fallback_url")
+                        if (!fallbackUrl.isNullOrBlank()) {
+                            view?.loadUrl(fallbackUrl)
+                            return true
+                        }
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                        return true
+                    } catch (_: Exception) {
+                        return true
+                    }
+                }
+
+                // Handle external schemes (mailto:, tel:, market:, etc.)
                 return try {
-                    val intent = Intent.parseUri(urlString, Intent.URI_INTENT_SCHEME)
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
                     true
                 } catch (_: Exception) {
                     true
                 }
+            }
+
+            override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                handler?.proceed()
+            }
+
+            override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                if (view != null) {
+                    (view.parent as? ViewGroup)?.removeView(view)
+                    view.destroy()
+                    webViewInstance = null
+                }
+                return true
             }
         }
 
