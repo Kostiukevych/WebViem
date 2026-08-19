@@ -2,9 +2,10 @@ name: Android Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -23,17 +24,18 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build debug APK
+      - name: Build Debug APK
         run: |
           if [ ! -f "./gradlew" ]; then
-            echo "gradlew not found, generating..."
+            echo "Generating Gradle wrapper..."
             gradle wrapper
           fi
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: MiniBrowser-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
