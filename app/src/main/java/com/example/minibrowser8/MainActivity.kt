@@ -55,12 +55,10 @@ import androidx.compose.ui.unit.sp
 import com.example.minibrowser8.model.AppLanguage
 import com.example.minibrowser8.model.AppThemeStyle
 import com.example.minibrowser8.model.BrowserSlotState
-import com.example.minibrowser8.model.GeminiOverlayState
 import com.example.minibrowser8.model.StringsHelper
 import com.example.minibrowser8.ui.BookmarksDialog
 import com.example.minibrowser8.ui.BrowserCard
 import com.example.minibrowser8.ui.BrowserFullscreenView
-import com.example.minibrowser8.ui.GeminiOverlayWindow
 import com.example.minibrowser8.ui.SettingsPresetsDialog
 import com.example.minibrowser8.ui.theme.MiniBrowserTheme
 
@@ -84,8 +82,6 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private val geminiState = GeminiOverlayState()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -96,10 +92,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MiniBrowserTheme {
-                MainBrowserApp(
-                    slots = slots,
-                    geminiState = geminiState
-                )
+                MainBrowserApp(slots = slots)
             }
         }
     }
@@ -108,15 +101,13 @@ class MainActivity : ComponentActivity() {
         for (slot in slots) {
             slot.destroy()
         }
-        geminiState.destroy()
         super.onDestroy()
     }
 }
 
 @Composable
 fun MainBrowserApp(
-    slots: List<BrowserSlotState>,
-    geminiState: GeminiOverlayState
+    slots: List<BrowserSlotState>
 ) {
     var language by remember { mutableStateOf(AppLanguage.UKRAINIAN) }
     var currentTheme by remember { mutableStateOf(AppThemeStyle.CYBERPUNK_NEON) }
@@ -130,14 +121,6 @@ fun MainBrowserApp(
 
     val activeSlots = slots.take(slotCount)
     val fullscreenSlot = fullscreenSlotId?.let { id -> slots.find { it.id == id } }
-
-    BackHandler(enabled = geminiState.isVisible && fullscreenSlotId == null) {
-        if (!geminiState.isMinimized) {
-            geminiState.minimize()
-        } else {
-            geminiState.close()
-        }
-    }
 
     Scaffold(
         modifier = Modifier
@@ -193,53 +176,6 @@ fun MainBrowserApp(
                             fontWeight = FontWeight.Bold
                         )
                     }
-
-                    // ✨ Gemini AI Overlay Button
-                    Surface(
-                        modifier = Modifier
-                            .height(26.dp)
-                            .clip(RoundedCornerShape(13.dp))
-                            .clickable {
-                                if (geminiState.isVisible && !geminiState.isMinimized) {
-                                    geminiState.minimize()
-                                } else {
-                                    geminiState.open()
-                                }
-                            }
-                            .testTag("gemini_toggle_button"),
-                        color = Color.Transparent,
-                        shape = RoundedCornerShape(13.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(
-                                            Color(0xFF4285F4),
-                                            Color(0xFF9B51E0)
-                                        )
-                                    )
-                                )
-                                .padding(horizontal = 7.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Gemini AI",
-                                tint = Color.White,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = "AI",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(3.dp))
 
                     // Bookmarks Button
                     IconButton(
@@ -415,14 +351,6 @@ fun MainBrowserApp(
                     onDismiss = { showSettingsDialog = false }
                 )
             }
-
-            // Floating Gemini AI Overlay Window (always stays on top, can be minimized / summoned)
-            GeminiOverlayWindow(
-                geminiState = geminiState,
-                themeStyle = currentTheme,
-                language = language,
-                modifier = Modifier.fillMaxSize()
-            )
         }
     }
 }

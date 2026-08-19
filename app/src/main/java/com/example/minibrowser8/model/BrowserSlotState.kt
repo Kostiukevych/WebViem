@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Message
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
@@ -51,10 +52,15 @@ class BrowserSlotState(
     @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
     fun getOrCreateWebView(context: Context): WebView {
         if (webViewInstance != null) {
-            return webViewInstance!!
+            val existing = webViewInstance!!
+            (existing.parent as? ViewGroup)?.removeView(existing)
+            return existing
         }
 
-        val wv = WebView(context.applicationContext).apply {
+        val wv = WebView(context).apply {
+            isFocusable = true
+            isFocusableInTouchMode = true
+
             val s = settings
             s.javaScriptEnabled = true
             s.domStorageEnabled = true
@@ -62,14 +68,12 @@ class BrowserSlotState(
             s.useWideViewPort = true
             s.loadWithOverviewMode = true
             s.setSupportZoom(true)
-            s.builtInZoomControls = false
+            s.builtInZoomControls = true
             s.displayZoomControls = false
-            
-            // Layout & Text Autosizing for mobile responsiveness
-            s.layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
+            s.layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
             s.textZoom = 100
             
-            // Media, Audio & WebRTC Playback settings for Discord, Instagram, YouTube
+            // Media, Audio & WebRTC Playback settings
             s.mediaPlaybackRequiresUserGesture = false
             s.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             s.allowFileAccess = true
@@ -132,11 +136,6 @@ class BrowserSlotState(
                 this@BrowserSlotState.canGoBack = view?.canGoBack() == true
                 this@BrowserSlotState.canGoForward = view?.canGoForward() == true
                 CookieManager.getInstance().flush()
-
-                // Inject Viewport Meta Tag and Responsive CSS Media Queries if in Mobile Mode
-                if (!isDesktopMode) {
-                    injectResponsiveViewportAndCss(view)
-                }
             }
 
             override fun shouldOverrideUrlLoading(
@@ -244,49 +243,6 @@ class BrowserSlotState(
 
         webViewInstance = wv
         return wv
-    }
-
-    private fun injectResponsiveViewportAndCss(wv: WebView?) {
-        val js = """
-            (function() {
-                try {
-                    // 1. Ensure responsive Viewport meta tag is defined
-                    var meta = document.querySelector('meta[name="viewport"]');
-                    if (!meta) {
-                        meta = document.createElement('meta');
-                        meta.name = 'viewport';
-                        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-                        (document.head || document.documentElement).appendChild(meta);
-                    } else if (!meta.content.includes('width=device-width')) {
-                        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
-                    }
-
-                    // 2. Inject responsive CSS media queries to adapt layout smoothly inside grid/mobile views
-                    var styleId = 'minibrowser-responsive-style';
-                    if (!document.getElementById(styleId)) {
-                        var style = document.createElement('style');
-                        style.id = styleId;
-                        style.textContent = `
-                            @media screen and (max-width: 900px) {
-                                html, body {
-                                    max-width: 100vw !important;
-                                    overflow-x: hidden !important;
-                                    -webkit-text-size-adjust: 100% !important;
-                                }
-                                img, video, canvas {
-                                    max-width: 100% !important;
-                                    height: auto;
-                                }
-                            }
-                        `;
-                        (document.head || document.documentElement).appendChild(style);
-                    }
-                } catch (e) {
-                    console.error('Responsive injection error: ' + e);
-                }
-            })();
-        """.trimIndent()
-        wv?.evaluateJavascript(js, null)
     }
 
     fun load(rawUrl: String) {
