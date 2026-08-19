@@ -21,26 +21,29 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Gradle 8.7
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.7'
-
-      - name: Accept Android SDK Licenses & Build Debug APK
+      - name: Build Debug APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
-          yes | sdkmanager --licenses || true
+          # 1. Accept SDK licenses automatically
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n84831b9409646a918e30573bab4c9c91346d8abd\nd56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
 
-          # Find project root if nested
+          # 2. Check if nested project directory exists
           SETTINGS_FILE=$(find . -maxdepth 3 -name "settings.gradle*" | head -n 1)
           if [ -n "$SETTINGS_FILE" ]; then
             cd "$(dirname "$SETTINGS_FILE")"
           fi
 
-          echo "Running gradle assembleDebug in $(pwd)..."
-          gradle assembleDebug --no-daemon --stacktrace
+          # 3. Generate official Gradle 8.7 wrapper directly on the runner
+          echo "Generating Gradle 8.7 wrapper..."
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          chmod +x ./gradlew
+
+          # 4. Build Debug APK
+          echo "Building Debug APK with Gradle 8.7..."
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
