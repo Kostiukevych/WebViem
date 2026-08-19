@@ -1,0 +1,15 @@
+{
+  "appId": "com.example.minibrowser8",
+  "appName": "8 Mini Browsers",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "server": {
+    "cleartext": true,
+    "androidScheme": "https"
+  }
+}

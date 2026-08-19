@@ -1,0 +1,26 @@
+{
+  "name": "mini-browser-8",
+  "version": "1.0.0",
+  "description": "8 Mini Browsers - Multitasking split-screen web browser for Android",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Building Android application...'",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "cap:build": "cap build android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "keywords": [
+    "android",
+    "browser",
+    "webview",
+    "multitasking",
+    "capacitor"
+  ],
+  "author": "",
+  "license": "MIT"
+}
