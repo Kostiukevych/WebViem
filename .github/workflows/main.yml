@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -28,29 +26,16 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Locate project & Build Debug APK
+      - name: Build Debug APK
         run: |
-          echo "=== Current Directory Contents ==="
-          ls -la
-
-          # Find where settings.gradle.kts or settings.gradle is located
+          # Find project root if nested
           SETTINGS_FILE=$(find . -maxdepth 3 -name "settings.gradle*" | head -n 1)
-
           if [ -n "$SETTINGS_FILE" ]; then
-            PROJECT_DIR=$(dirname "$SETTINGS_FILE")
-            echo "Found Gradle project in: $PROJECT_DIR"
-            cd "$PROJECT_DIR"
-          else
-            echo "Building from current root directory"
+            cd "$(dirname "$SETTINGS_FILE")"
           fi
 
-          # Ensure gradlew has execute permission if present
-          if [ -f "./gradlew" ]; then
-            chmod +x ./gradlew
-            ./gradlew assembleDebug --no-daemon --stacktrace
-          else
-            gradle assembleDebug --no-daemon --stacktrace
-          fi
+          echo "Running gradle assembleDebug in $(pwd)..."
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
